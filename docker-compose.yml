@@ -1,6 +1,6 @@
 services:
   rustacme:
-    image: ${RUSTACME_IMAGE:-rustacme:local}
+    image: ${RUSTACME_IMAGE:-ghcr.io/ethandetigris/rustacme:latest}
     container_name: rustacme
     restart: unless-stopped
     env_file: .env

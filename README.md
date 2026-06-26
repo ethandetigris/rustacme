@@ -24,6 +24,18 @@ Set `RUSTACME_IMAGE` when using a published image:
 RUSTACME_IMAGE=ghcr.io/ethandetigris/rustacme:latest docker compose up -d
 ```
 
+GitHub Actions and the default Docker build use the official crates.io sparse index. On mainland China hosts you can opt into the China Cargo mirror profile:
+
+```bash
+RUSTACME_CARGO_CONFIG=.cargo/config.china.toml ./build.sh
+```
+
+or:
+
+```bash
+docker build --build-arg CARGO_CONFIG=.cargo/config.china.toml -t rustacme:local .
+```
+
 ## Configuration
 
 ```env

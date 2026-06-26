@@ -8,6 +8,8 @@ ENV CARGO_HTTP_MULTIPLEXING=false \
     CARGO_NET_RETRY=20
 RUN printf 'precedence ::ffff:0:0/96 100\n' >> /etc/gai.conf
 COPY .cargo ./.cargo
+ARG CARGO_CONFIG=.cargo/config.toml
+RUN if [ "$CARGO_CONFIG" != ".cargo/config.toml" ]; then cp "$CARGO_CONFIG" .cargo/config.toml; fi
 COPY Cargo.toml ./
 COPY src ./src
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

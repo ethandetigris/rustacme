@@ -1,0 +1,24 @@
+[package]
+name = "rustacme"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "A small ACME DNS-01 certificate renewer for West.cn DNS, designed for Docker."
+repository = "https://github.com/ethandetigris/rustacme"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls-webpki-roots"] }
+instant-acme = { version = "0.4", default-features = false }
+hyper = { version = "0.14", default-features = false, features = ["client", "http1", "http2"] }
+hyper-rustls = { version = "0.24", default-features = false, features = ["http1", "http2", "tls12", "webpki-tokio"] }
+x509-parser = "0.15"
+chrono = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rcgen = "0.11"
+log = "0.4"
+env_logger = "0.10"
+md-5 = "0.10"
+time = ">=0.3.30, <0.3.47"
+encoding_rs = "0.8"

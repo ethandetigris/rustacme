@@ -1,0 +1,10 @@
+services:
+  rustacme:
+    image: ${RUSTACME_IMAGE:-rustacme:local}
+    container_name: rustacme
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - RUST_LOG=info
+    volumes:
+      - ./certs:/certs

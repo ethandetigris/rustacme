@@ -1,0 +1,5 @@
+target/
+certs/
+.env
+*.tar
+*.tar.gz

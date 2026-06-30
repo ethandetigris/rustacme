@@ -3,6 +3,7 @@ services:
     image: ${RUSTACME_IMAGE:-ghcr.io/ethandetigris/rustacme:latest}
     container_name: rustacme
     restart: unless-stopped
+    network_mode: host
     env_file: .env
     environment:
       - RUST_LOG=info

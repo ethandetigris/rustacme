@@ -8,6 +8,8 @@ It stores certificates under `/certs/<first-domain>/`:
 - `privkey.pem`
 - `account.json`
 
+Issued certificate private keys are always generated as RSA 4096-bit PKCS#8 keys. CSRs are signed with RSA PKCS#1 v1.5 + SHA-512, the strongest RSA/SHA mode supported by the current `rcgen` version used by this project. The final certificate chain signature algorithm is selected by the ACME CA.
+
 ## Usage
 
 ```bash
@@ -17,6 +19,8 @@ mkdir -p certs
 chmod 700 certs
 docker compose up -d
 ```
+
+The bundled Compose file uses Docker host networking.
 
 Set `RUSTACME_IMAGE` when using a published image:
 

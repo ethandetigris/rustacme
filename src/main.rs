@@ -8,7 +8,8 @@ use md5::{Digest, Md5};
 use rand::rngs::OsRng;
 use rcgen::{Certificate, CertificateParams, DistinguishedName, DnType, KeyPair, PKCS_RSA_SHA512};
 use reqwest::Client as HttpClient;
-use rsa::pkcs8::{EncodePrivateKey, LineEnding};
+use rsa::pkcs8::{DecodePublicKey, EncodePrivateKey, LineEnding};
+use rsa::traits::PublicKeyParts;
 use rsa::RsaPrivateKey;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -143,6 +144,13 @@ fn needs_renewal(
     let pem = fs::read_to_string(path)?;
     let (_, obj) = parse_x509_pem(pem.as_bytes())?;
     let x509 = obj.parse_x509()?;
+    let key = match rsa::RsaPublicKey::from_public_key_der(x509.tbs_certificate.subject_pki.raw) {
+        Ok(key) => key,
+        Err(_) => return Ok(true),
+    };
+    if key.n().bits() < CERT_KEY_BITS {
+        return Ok(true);
+    }
     let dt = Utc
         .timestamp_opt(x509.tbs_certificate.validity.not_after.timestamp(), 0)
         .single()
@@ -551,7 +559,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     }
                 }
                 Ok(false) => info!("[{}] cert ok", dir),
-                Err(e) => error!("[{}] {}", dir, e),
+                Err(e) => error!("[{}] {}", dir),
             }
         }
         tokio::time::sleep(Duration::from_secs(interval)).await;

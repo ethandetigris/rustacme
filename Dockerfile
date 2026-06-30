@@ -1,6 +1,7 @@
-# syntax=docker/dockerfile:1.7
+ARG BUILDER_IMAGE=rust:1-bookworm
+ARG RUNTIME_IMAGE=debian:bookworm-slim
 
-FROM rust:1-bookworm AS builder
+FROM ${BUILDER_IMAGE} AS builder
 
 WORKDIR /src
 ENV CARGO_HTTP_MULTIPLEXING=false \
@@ -12,12 +13,10 @@ ARG CARGO_CONFIG=.cargo/config.toml
 RUN if [ "$CARGO_CONFIG" != ".cargo/config.toml" ]; then cp "$CARGO_CONFIG" .cargo/config.toml; fi
 COPY Cargo.toml ./
 COPY src ./src
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    cargo generate-lockfile \
+RUN cargo generate-lockfile \
     && cargo build --release --locked
 
-FROM debian:bookworm-slim
+FROM ${RUNTIME_IMAGE}
 
 ENV TZ=Asia/Shanghai
 COPY --from=builder /src/target/release/rustacme /usr/local/bin/rustacme

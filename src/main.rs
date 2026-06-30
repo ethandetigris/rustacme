@@ -559,7 +559,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     }
                 }
                 Ok(false) => info!("[{}] cert ok", dir),
-                Err(e) => error!("[{}] {}", dir),
+                Err(e) => error!("[{}] {}", dir, e),
             }
         }
         tokio::time::sleep(Duration::from_secs(interval)).await;

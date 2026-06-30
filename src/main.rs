@@ -5,8 +5,11 @@ use instant_acme::{
 };
 use log::{error, info, warn};
 use md5::{Digest, Md5};
-use rcgen::{CertificateParams, DistinguishedName, DnType};
+use rand::rngs::OsRng;
+use rcgen::{Certificate, CertificateParams, DistinguishedName, DnType, KeyPair, PKCS_RSA_SHA512};
 use reqwest::Client as HttpClient;
+use rsa::pkcs8::{EncodePrivateKey, LineEnding};
+use rsa::RsaPrivateKey;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -22,6 +25,8 @@ const DEFAULT_ACME: &str = "https://acme-v02.api.letsencrypt.org/directory";
 const API: &str = "https://api.west.cn/API/v2/domain/dns/";
 const DEFAULT_DNS_WAIT: u64 = 90;
 const TIMEOUT: Duration = Duration::from_secs(30);
+const CERT_KEY_BITS: usize = 4096;
+const CERT_CSR_SIGNATURE: &str = "RSA-4096/PKCS#1-SHA512";
 
 /// Two-level TLD suffixes that require 3-part base domain extraction.
 const TWO_LVL: &[&[&str]] = &[
@@ -313,6 +318,27 @@ fn acme_http_client() -> Box<dyn instant_acme::HttpClient> {
     Box::new(hyper::Client::builder().build(https))
 }
 
+fn certificate_request(
+    domains: &[String],
+) -> Result<(Vec<u8>, String), Box<dyn std::error::Error + Send + Sync>> {
+    let common_name = domains.first().ok_or("certificate must contain at least one domain")?;
+    let private_key = RsaPrivateKey::new(&mut OsRng, CERT_KEY_BITS)?;
+    let private_key_pem = private_key.to_pkcs8_pem(LineEnding::LF)?.to_string();
+    let key_pair = KeyPair::from_pem_and_sign_algo(&private_key_pem, &PKCS_RSA_SHA512)?;
+
+    let mut params = CertificateParams::new(domains.to_vec());
+    params.alg = &PKCS_RSA_SHA512;
+    params.key_pair = Some(key_pair);
+    params.distinguished_name = {
+        let mut dn = DistinguishedName::new();
+        dn.push(DnType::CommonName, common_name.clone());
+        dn
+    };
+
+    let certificate = Certificate::from_params(params)?;
+    Ok((certificate.serialize_request_der()?, private_key_pem))
+}
+
 async fn account(
     email: &str,
     acme_directory: &str,
@@ -447,15 +473,9 @@ async fn issue_with_cleanup(
         }
     }
 
-    let mut cp = CertificateParams::new(cert.domains.clone());
-    cp.distinguished_name = {
-        let mut dn = DistinguishedName::new();
-        dn.push(DnType::CommonName, cert.domains[0].clone());
-        dn
-    };
-    let tls = rcgen::Certificate::from_params(cp)?;
-    order.finalize(&tls.serialize_request_der()?).await?;
-    let privkey = tls.serialize_private_key_pem();
+    let (csr_der, privkey) = certificate_request(&cert.domains)?;
+    info!("[{}] CSR uses {}", cert.cert_dir(), CERT_CSR_SIGNATURE);
+    order.finalize(&csr_der).await?;
 
     let pem = loop {
         if let Some(c) = order.certificate().await? {
